@@ -68,7 +68,11 @@ export default function ClientesPage() {
     const res = await apiFetch("/api/clientes", {
       method: "POST",
       body: JSON.stringify({
-        ...form,
+        nombre: form.nombre,
+        contacto: form.contacto || undefined,
+        email: form.email || undefined,
+        documento: form.documento || undefined,
+        direccion: form.direccion || undefined,
         limiteCredito: form.limiteCredito ? Number(form.limiteCredito) : undefined,
       }),
     });
@@ -92,10 +96,10 @@ export default function ClientesPage() {
       method: "PUT",
       body: JSON.stringify({
         nombre: editando.nombre,
-        contacto: editando.contacto,
-        email: editando.email,
-        documento: editando.documento,
-        direccion: editando.direccion,
+        contacto: editando.contacto || null,
+        email: editando.email || null,
+        documento: editando.documento || null,
+        direccion: editando.direccion || null,
         limiteCredito: editando.limiteCredito ? Number(editando.limiteCredito) : null,
       }),
     });

@@ -155,6 +155,7 @@ export default function ProductosPage() {
         precio: Number(editando.precio),
         precioCosto: editando.precioCosto ? Number(editando.precioCosto) : null,
         stockMinimo: editando.stockMinimo,
+        activo: editando.activo,
       }),
     });
     const data = await res.json();
@@ -378,6 +379,14 @@ export default function ProductosPage() {
             <p className="text-xs text-slate-400">
               El stock actual no se edita aquí: usa Inventario → Ajuste para que quede el rastro del movimiento.
             </p>
+            <SelectField
+              label="Estado"
+              value={editando.activo ? "activo" : "inactivo"}
+              onChange={(e) => setEditando({ ...editando, activo: e.target.value === "activo" })}
+            >
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </SelectField>
 
             {error && <Alert>{error}</Alert>}
 

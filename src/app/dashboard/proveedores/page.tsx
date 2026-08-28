@@ -71,7 +71,18 @@ export default function ProveedoresPage() {
     e.preventDefault();
     setError(null);
     setGuardando(true);
-    const res = await apiFetch("/api/proveedores", { method: "POST", body: JSON.stringify(form) });
+    const res = await apiFetch("/api/proveedores", {
+      method: "POST",
+      body: JSON.stringify({
+        nombre: form.nombre,
+        contacto: form.contacto || undefined,
+        telefono: form.telefono || undefined,
+        email: form.email || undefined,
+        nit: form.nit || undefined,
+        direccion: form.direccion || undefined,
+        notas: form.notas || undefined,
+      }),
+    });
     const data = await res.json();
     setGuardando(false);
     if (!res.ok) {
@@ -92,12 +103,12 @@ export default function ProveedoresPage() {
       method: "PUT",
       body: JSON.stringify({
         nombre: editando.nombre,
-        contacto: editando.contacto,
-        telefono: editando.telefono,
-        email: editando.email,
-        nit: editando.nit,
-        direccion: editando.direccion,
-        notas: editando.notas,
+        contacto: editando.contacto || null,
+        telefono: editando.telefono || null,
+        email: editando.email || null,
+        nit: editando.nit || null,
+        direccion: editando.direccion || null,
+        notas: editando.notas || null,
       }),
     });
     const data = await res.json();
