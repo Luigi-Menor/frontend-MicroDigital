@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  ::selection {
+    background-color: theme("colors.brand.100");
+  }
+
+  /* Cifras de dinero/cantidades: números de igual ancho para que las
+     columnas de las tablas queden alineadas verticalmente. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
