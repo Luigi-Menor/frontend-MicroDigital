@@ -104,6 +104,12 @@ export default function LoginPage() {
             <Button type="submit" cargando={cargando} className="w-full">
               {cargando ? "Ingresando..." : "Ingresar"}
             </Button>
+            <Link
+              href="/recuperar"
+              className="block text-center text-sm text-slate-500 underline underline-offset-2"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
           </form>
         </div>
 

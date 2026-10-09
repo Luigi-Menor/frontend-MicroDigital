@@ -4,6 +4,7 @@ import { useEffect, useState, FormEvent } from "react";
 import { Plus, Pencil, Trophy } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { formatoMoneda, formatoFecha } from "@/lib/format";
+import { useSesion } from "../SesionContext";
 import {
   PageHeader,
   Button,
@@ -52,6 +53,7 @@ const FORM_VACIO = {
   nombre: "",
   email: "",
   password: "",
+  rol: "VENDEDOR" as "ADMINISTRADOR" | "VENDEDOR",
   telefono: "",
   documento: "",
   cargo: "",
@@ -76,6 +78,8 @@ function badgeCumplimiento(r: Rendimiento) {
 }
 
 export default function UsuariosPage() {
+  const { sesion } = useSesion();
+  const miId = sesion?.usuario.id;
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +142,7 @@ export default function UsuariosPage() {
         nombre: form.nombre,
         email: form.email,
         password: form.password,
+        rol: form.rol,
         telefono: form.telefono || undefined,
         documento: form.documento || undefined,
         cargo: form.cargo || undefined,
@@ -149,7 +154,7 @@ export default function UsuariosPage() {
     const data = await res.json();
     setGuardando(false);
     if (!res.ok) {
-      setError(data.error ?? "No se pudo crear el vendedor");
+      setError(data.error ?? "No se pudo crear el usuario");
       return;
     }
     setForm(FORM_VACIO);
@@ -167,6 +172,7 @@ export default function UsuariosPage() {
       body: JSON.stringify({
         nombre: editando.nombre,
         activo: editando.activo,
+        rol: editando.rol === "SUPERADMIN" ? undefined : editando.rol,
         telefono: editando.telefono,
         documento: editando.documento,
         cargo: editando.cargo,
@@ -178,7 +184,7 @@ export default function UsuariosPage() {
     const data = await res.json();
     setGuardando(false);
     if (!res.ok) {
-      setError(data.error ?? "No se pudo guardar el vendedor");
+      setError(data.error ?? "No se pudo guardar el usuario");
       return;
     }
     setEditando(null);
@@ -189,7 +195,7 @@ export default function UsuariosPage() {
   return (
     <div>
       <PageHeader
-        title="Vendedores"
+        title="Usuarios"
         description="Gestiona tu equipo y revisa su rendimiento de ventas"
         actions={
           <Button
@@ -200,7 +206,7 @@ export default function UsuariosPage() {
               setModalNuevo(true);
             }}
           >
-            <Plus className="h-4 w-4" /> Nuevo vendedor
+            <Plus className="h-4 w-4" /> Nuevo usuario
           </Button>
         }
       />
@@ -213,7 +219,7 @@ export default function UsuariosPage() {
             <tr>
               <Th>Nombre</Th>
               <Th>Correo</Th>
-              <Th>Cargo</Th>
+              <Th>Rol</Th>
               <Th>Estado</Th>
               <Th />
             </tr>
@@ -226,7 +232,12 @@ export default function UsuariosPage() {
                   {v.telefono && <p className="text-xs text-slate-400">{v.telefono}</p>}
                 </Td>
                 <Td>{v.email}</Td>
-                <Td>{v.cargo ?? "—"}</Td>
+                <Td>
+                  <Badge tono={v.rol === "ADMINISTRADOR" ? "info" : "neutral"}>
+                    {v.rol === "ADMINISTRADOR" ? "Administrador" : "Vendedor"}
+                  </Badge>
+                  {v.cargo && <p className="mt-0.5 text-xs text-slate-400">{v.cargo}</p>}
+                </Td>
                 <Td>
                   <Badge tono={v.activo ? "success" : "neutral"}>{v.activo ? "Activo" : "Inactivo"}</Badge>
                 </Td>
@@ -246,7 +257,7 @@ export default function UsuariosPage() {
                 </Td>
               </Tr>
             ))}
-            {vendedores.length === 0 && <EmptyRow colSpan={5}>Aún no has agregado vendedores.</EmptyRow>}
+            {vendedores.length === 0 && <EmptyRow colSpan={5}>Aún no has agregado usuarios.</EmptyRow>}
           </tbody>
         </TableShell>
       )}
@@ -305,7 +316,7 @@ export default function UsuariosPage() {
         </CardBody>
       </Card>
 
-      <Modal open={modalNuevo} onClose={() => setModalNuevo(false)} title="Nuevo vendedor">
+      <Modal open={modalNuevo} onClose={() => setModalNuevo(false)} title="Nuevo usuario">
         <form onSubmit={crearVendedor} className="space-y-4">
           <TextField label="Nombre" required value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
           <TextField label="Correo" type="email" autoComplete="off" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
@@ -318,6 +329,14 @@ export default function UsuariosPage() {
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
+          <SelectField
+            label="Rol"
+            value={form.rol}
+            onChange={(e) => setForm({ ...form, rol: e.target.value as "ADMINISTRADOR" | "VENDEDOR" })}
+          >
+            <option value="VENDEDOR">Vendedor (registra ventas)</option>
+            <option value="ADMINISTRADOR">Administrador (acceso total)</option>
+          </SelectField>
           <div className="grid grid-cols-2 gap-3">
             <TextField label="Teléfono (opcional)" value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} />
             <TextField label="Documento (opcional)" value={form.documento} onChange={(e) => setForm({ ...form, documento: e.target.value })} />
@@ -344,13 +363,13 @@ export default function UsuariosPage() {
               Cancelar
             </Button>
             <Button type="submit" cargando={guardando}>
-              Guardar vendedor
+              Guardar usuario
             </Button>
           </div>
         </form>
       </Modal>
 
-      <Modal open={!!editando} onClose={() => setEditando(null)} title="Editar vendedor">
+      <Modal open={!!editando} onClose={() => setEditando(null)} title="Editar usuario">
         {editando && (
           <form onSubmit={guardarEdicion} className="space-y-4">
             <TextField label="Nombre" required value={editando.nombre} onChange={(e) => setEditando({ ...editando, nombre: e.target.value })} />
@@ -378,8 +397,20 @@ export default function UsuariosPage() {
               />
             </div>
             <SelectField
+              label="Rol"
+              value={editando.rol}
+              disabled={editando.id === miId}
+              hint={editando.id === miId ? "No puedes cambiar tu propio rol" : undefined}
+              onChange={(e) => setEditando({ ...editando, rol: e.target.value as "ADMINISTRADOR" | "VENDEDOR" })}
+            >
+              <option value="VENDEDOR">Vendedor</option>
+              <option value="ADMINISTRADOR">Administrador</option>
+            </SelectField>
+            <SelectField
               label="Estado"
               value={editando.activo ? "activo" : "inactivo"}
+              disabled={editando.id === miId}
+              hint={editando.id === miId ? "No puedes desactivar tu propia cuenta" : undefined}
               onChange={(e) => setEditando({ ...editando, activo: e.target.value === "activo" })}
             >
               <option value="activo">Activo</option>

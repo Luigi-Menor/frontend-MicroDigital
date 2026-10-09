@@ -59,7 +59,7 @@ const NAV: NavGrupo[] = [
     titulo: "Gestión",
     items: [
       { href: "/dashboard/estadisticas", etiqueta: "Estadísticas", icono: BarChart3 },
-      { href: "/dashboard/usuarios", etiqueta: "Vendedores", icono: UserCog, soloAdmin: true },
+      { href: "/dashboard/usuarios", etiqueta: "Usuarios", icono: UserCog, soloAdmin: true },
     ],
   },
 ];
