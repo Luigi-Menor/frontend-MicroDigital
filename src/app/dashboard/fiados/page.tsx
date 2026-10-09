@@ -3,6 +3,7 @@
 import { useEffect, useState, useReducer, FormEvent } from "react";
 import { HandCoins, RotateCcw } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { usePostIdempotente, MENSAJE_ERROR_RED } from "@/lib/idempotencia";
 import { formatoMoneda, formatoFecha } from "@/lib/format";
 import { useSesion } from "../SesionContext";
 import {
@@ -84,6 +85,7 @@ function abonoReducer(state: AbonoState, action: AbonoAction): AbonoState {
 
 export default function FiadosPage() {
   const { esAdmin } = useSesion();
+  const postIdempotente = usePostIdempotente();
   const [cartera, setCartera] = useState<ClienteCartera[]>([]);
   const [totalCartera, setTotalCartera] = useState(0);
   const [porTramo, setPorTramo] = useState<Record<string, number>>({});
@@ -122,18 +124,23 @@ export default function FiadosPage() {
     if (!abono.abonoDe) return;
     dispatchAbono({ type: "SET_ERROR", error: null });
     dispatchAbono({ type: "SET_REGISTRANDO", registrando: true });
-    const res = await apiFetch("/api/fiados/abonos", {
-      method: "POST",
-      body: JSON.stringify({
+    let res: Response;
+    let data: { error?: string };
+    try {
+      res = await postIdempotente("/api/fiados/abonos", {
         clienteId: abono.abonoDe.clienteId,
         monto: Number(abono.monto),
         formaPago: abono.formaPago,
         nota: abono.nota || undefined,
         emitirComprobante: abono.emitirComprobante,
-      }),
-    });
-    const data = await res.json();
-    dispatchAbono({ type: "SET_REGISTRANDO", registrando: false });
+      });
+      data = await res.json();
+    } catch {
+      dispatchAbono({ type: "SET_ERROR", error: MENSAJE_ERROR_RED });
+      return;
+    } finally {
+      dispatchAbono({ type: "SET_REGISTRANDO", registrando: false });
+    }
     if (!res.ok) {
       dispatchAbono({ type: "SET_ERROR", error: data.error ?? "No se pudo registrar el abono" });
       return;

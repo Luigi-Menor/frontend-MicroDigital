@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useReducer, FormEvent } from "react";
 import { Plus, Trash2, PackageCheck, Ban } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { usePostIdempotente, MENSAJE_ERROR_RED } from "@/lib/idempotencia";
 import { formatoMoneda, formatoFecha } from "@/lib/format";
 import { useSesion } from "../SesionContext";
 import {
@@ -120,6 +121,7 @@ function compraFormReducer(state: CompraFormState, action: CompraFormAction): Co
 
 export default function ComprasPage() {
   const { esAdmin } = useSesion();
+  const postIdempotente = usePostIdempotente();
   const [compras, setCompras] = useState<Compra[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -185,18 +187,23 @@ export default function ComprasPage() {
       return;
     }
     dispatchForm({ type: "SET_GUARDANDO", guardando: true });
-    const res = await apiFetch("/api/compras", {
-      method: "POST",
-      body: JSON.stringify({
+    let res: Response;
+    let data: { error?: string };
+    try {
+      res = await postIdempotente("/api/compras", {
         proveedorId: form.proveedorId,
         items: form.items.map(({ id, ...item }) => item),
         formaPago: form.formaPago,
         numeroFactura: form.numeroFactura || undefined,
         nota: form.nota || undefined,
-      }),
-    });
-    const data = await res.json();
-    dispatchForm({ type: "SET_GUARDANDO", guardando: false });
+      });
+      data = await res.json();
+    } catch {
+      dispatchForm({ type: "SET_ERROR", error: MENSAJE_ERROR_RED });
+      return;
+    } finally {
+      dispatchForm({ type: "SET_GUARDANDO", guardando: false });
+    }
     if (!res.ok) {
       dispatchForm({ type: "SET_ERROR", error: data.error ?? "No se pudo registrar la compra" });
       return;
@@ -207,8 +214,15 @@ export default function ComprasPage() {
 
   async function recibirCompra(c: Compra) {
     if (!window.confirm(`Al recibir la compra #${c.numero} se incrementará el stock de sus productos. ¿Continuar?`)) return;
-    const res = await apiFetch(`/api/compras/${c.id}/recibir`, { method: "POST" });
-    const data = await res.json();
+    let res: Response;
+    let data: { error?: string };
+    try {
+      res = await postIdempotente(`/api/compras/${c.id}/recibir`);
+      data = await res.json();
+    } catch {
+      window.alert(MENSAJE_ERROR_RED);
+      return;
+    }
     if (!res.ok) {
       window.alert(data.error ?? "No se pudo recibir la compra");
       return;

@@ -3,6 +3,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { Plus, Pencil, Wallet, Search } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { usePostIdempotente, MENSAJE_ERROR_RED } from "@/lib/idempotencia";
 import { formatoMoneda } from "@/lib/format";
 import { useSesion } from "../SesionContext";
 import {
@@ -39,6 +40,7 @@ const FORM_VACIO = { nombre: "", contacto: "", telefono: "", email: "", nit: "",
 
 export default function ProveedoresPage() {
   const { esAdmin } = useSesion();
+  const postIdempotente = usePostIdempotente();
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
@@ -134,12 +136,22 @@ export default function ProveedoresPage() {
     if (!pagoDe) return;
     setError(null);
     setGuardando(true);
-    const res = await apiFetch("/api/proveedores/pagos", {
-      method: "POST",
-      body: JSON.stringify({ proveedorId: pagoDe.id, monto: Number(monto), formaPago, nota: nota || undefined }),
-    });
-    const data = await res.json();
-    setGuardando(false);
+    let res: Response;
+    let data: { error?: string };
+    try {
+      res = await postIdempotente("/api/proveedores/pagos", {
+        proveedorId: pagoDe.id,
+        monto: Number(monto),
+        formaPago,
+        nota: nota || undefined,
+      });
+      data = await res.json();
+    } catch {
+      setError(MENSAJE_ERROR_RED);
+      return;
+    } finally {
+      setGuardando(false);
+    }
     if (!res.ok) {
       setError(data.error ?? "No se pudo registrar el pago");
       return;

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Ban, ShoppingCart, Wallet, Landmark, HandCoins } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { usePostIdempotente, MENSAJE_ERROR_RED } from "@/lib/idempotencia";
 import { formatoMoneda, formatoFechaHora } from "@/lib/format";
 import { useSesion } from "../SesionContext";
 import {
@@ -67,6 +68,7 @@ const ETIQUETA_PAGO: Record<string, string> = {
 
 export default function VentasPage() {
   const { esAdmin } = useSesion();
+  const postIdempotente = usePostIdempotente();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [ventas, setVentas] = useState<Venta[]>([]);
@@ -137,17 +139,22 @@ export default function VentasPage() {
       return;
     }
     setRegistrando(true);
-    const res = await apiFetch("/api/ventas", {
-      method: "POST",
-      body: JSON.stringify({
+    let res: Response;
+    let data: { error?: string };
+    try {
+      res = await postIdempotente("/api/ventas", {
         items: items.map(({ id, ...item }) => item),
         formaPago,
         clienteId: formaPago === "FIADO" ? clienteId : undefined,
         montoPagado: formaPago === "EFECTIVO" && montoPagado ? Number(montoPagado) : undefined,
-      }),
-    });
-    const data = await res.json();
-    setRegistrando(false);
+      });
+      data = await res.json();
+    } catch {
+      setError(MENSAJE_ERROR_RED);
+      return;
+    } finally {
+      setRegistrando(false);
+    }
     if (!res.ok) {
       setError(data.error ?? "No se pudo registrar la venta");
       return;
